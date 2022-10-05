@@ -18,7 +18,7 @@ namespace ytdownload
     public partial class Form1 : Form
     {
         private string filepath;
-        public string[] settings;
+        public List<string> settings;
        NicoNico.Net.Managers.AuthenticationManager authManager;
         CookieContainer cookieContainer;
         UserSession session;
@@ -34,7 +34,7 @@ namespace ytdownload
 
         {
             InitializeComponent();
-            settings = new string[3];
+            settings= new List<string>(100);
             readsetting();
             textBox2.Text = settings[0];
             checkBox1.Checked = bool.Parse(settings[1]);
@@ -62,7 +62,6 @@ namespace ytdownload
             settings[1] = checkBox1.Checked.ToString();
             settings[2] = comboBox1.Text;
             settings[3] = textBox1.Text;
-            Console.WriteLine(settings[4]);
             setsetting();
             Application.Exit();
         }
@@ -178,8 +177,11 @@ savevideo(string link, string path)
             while (true)
             {
                 char[] invalidChars = System.IO.Path.GetInvalidPathChars();
+                
                 Array.Resize(ref invalidChars, invalidChars.Length+1);
                 invalidChars[invalidChars.Length - 1] = ':';
+                Array.Resize(ref invalidChars, invalidChars.Length + 1);
+                invalidChars[invalidChars.Length - 1] = '　';
                 Console.WriteLine(invalidChars);
                 int num = content.IndexOfAny(invalidChars);
                 Console.WriteLine(num);
@@ -211,17 +213,17 @@ savevideo(string link, string path)
                 }
                 catch(Exception e)
                 {
-                    Console.Write(e.ToString());
+                    Console.Write("zip\n"+e.ToString());
                 }
             }
         }
 
         void setsetting()
         {
-            string path = Application.LocalUserAppDataPath + @"\data";
+            string path = Application.LocalUserAppDataPath + @"\data.txt";
             StreamWriter s = new StreamWriter(path);
             string a = "";
-            for (int i = 0; i < settings.Length; i++)
+            for (int i = 0; i < settings.Count; i++)
             {
                 a += settings[i] + ",";
             }
@@ -231,21 +233,24 @@ savevideo(string link, string path)
 
         void readsetting()
         {
-            string path = Application.LocalUserAppDataPath + @"\data";
+            string path = Application.LocalUserAppDataPath + @"\data.txt";
             if (File.Exists(path))
             {
                 StreamReader streamreader=new StreamReader(path);
-               string[] read= streamreader.ReadToEnd().Split(',');
-                settings = read;
+               var s= streamreader.ReadToEnd().Split(',');
+                settings.AddRange(s);
                 streamreader.Close();
             }
             else
             {
-                settings[0] = "";
-                settings[1] = "false";
-                settings[2] = "mp3";
-                settings[3] = "";
-                File.Create(path).Close();
+                settings.Add("");
+                settings.Add("true");
+                settings.Add("mp3");
+                settings.Add("");
+                //path= Path.GetFullPath(path)
+                var f =System.IO.File.Create("data.txt");
+            
+                f.Close();
                 setsetting();   
             }
         }

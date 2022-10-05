@@ -9,7 +9,7 @@
     <ProjectGuid>{81D44C75-0613-4899-8EDD-0E4DAA2BEC1D}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>ytdownload</RootNamespace>
-    <AssemblyName>ytdownload</AssemblyName>
+    <AssemblyName>yt</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -67,7 +67,7 @@
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <NoWin32Manifest>true</NoWin32Manifest>

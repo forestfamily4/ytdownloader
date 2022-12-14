@@ -11,7 +11,7 @@ using System.Net;
 using NicoNico.Net.Entities.User;
 using System.Collections.Generic;
 using System.Text;
-
+using SoundCloudExplode;
 
 namespace ytdownload
 {
@@ -83,9 +83,10 @@ namespace ytdownload
                         await savevideo(textBox1.Text, textBox2.Text);
                     }
                 }
-                else if (textBox1.Text.IndexOf("https://www.nicovideo.jp") != -1)
+                else if (textBox1.Text.IndexOf("soundcloud.com") != -1)
                 {
-                    await postniconicourl(textBox1.Text,textBox2.Text);
+                    //await postniconicourl(textBox1.Text,textBox2.Text);
+                    DownloadSoundCloud(textBox2.Text, textBox1.Text);
                 }
                 
                 
@@ -324,6 +325,24 @@ savevideo(string link, string path)
         {
             filepath = textBox2.Text + @"\ニコニコ動画" + DateTime.Now.ToString();
             await downloadniconico(textBox1.Text);
+        }
+
+
+        private Progress<double> _Progress_Soundcloud;
+        
+        async void DownloadSoundCloud(string path,string link)
+        {
+            var soundcloud = new SoundCloudClient();
+
+            var track=await soundcloud.Tracks.GetAsync(link);
+            var trackName = string.Join("_", track.Title.Split(Path.GetInvalidFileNameChars()));
+            string fileresultpath = path + "\\" + trackName + ".mp3";
+            Debug.WriteLine("soundcloud");
+            _Progress_Soundcloud = new Progress<double>(x =>
+            {
+                progressBar2.Value = (int)(x*100);
+            });
+            soundcloud.DownloadAsync(track, fileresultpath,_Progress_Soundcloud);
         }
     }
 }

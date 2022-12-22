@@ -12,6 +12,8 @@ using NicoNico.Net.Entities.User;
 using System.Collections.Generic;
 using System.Text;
 using SoundCloudExplode;
+using System.Net.Http.Headers;
+using System.Linq;
 
 namespace ytdownload
 {
@@ -142,8 +144,11 @@ namespace ytdownload
         Task
 savevideo(string link, string path)
         {
+            /*
             var youtube = YouTube.Default;
+            
             var video = youtube.GetVideo(link);
+            
             var client = new HttpClient();
             long? totalByte = 0;
 
@@ -168,7 +173,40 @@ savevideo(string link, string path)
                         progressBar1.Value = (int)((totalRead / (double)totalByte) * 100);
                     }
                 }
+            }*/
+            var youtube = new CustomYouTube();
+            if (checkBox2.Checked)
+            {
+                Console.WriteLine("最高画質");
+                var videos = await youtube.GetAllVideosAsync(link);
+                var maxResolution = videos.First(i => i.Resolution == videos.Max(j => j.Resolution));
+                await youtube
+                    .CreateDownloadAsync(
+                    new Uri(maxResolution.Uri),
+                    Path.Combine(path, maxResolution.FullName),
+                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
+                    {
+                        var percent = (int)((v.Item1 * 100) / v.Item2);
+                        progressBar1.Value = percent;
+                        label3.Text = string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N"));
+                    }));
             }
+            else
+            {
+                var video=await youtube.GetVideoAsync(link);
+                await youtube
+                    .CreateDownloadAsync(
+                    new Uri(video.Uri),
+                    Path.Combine(path, video.FullName),
+                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
+                    {
+                        var percent = (int)((v.Item1 * 100) / v.Item2);
+                        progressBar1.Value = percent; 
+                        label3.Text = string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N"));
+                    }));
+            }
+            
+                
         }
 
          
@@ -343,6 +381,65 @@ savevideo(string link, string path)
                 progressBar2.Value = (int)(x*100);
             });
             soundcloud.DownloadAsync(track, fileresultpath,_Progress_Soundcloud);
+        }
+    }
+
+    class CustomYouTube : YouTube
+    {
+        private long chunkSize = 10_485_760;
+        private long _fileSize = 0L;
+        private HttpClient _client = new HttpClient();
+        protected override HttpClient MakeClient(HttpMessageHandler handler)
+        {
+            return base.MakeClient(handler);
+        }
+        public async Task CreateDownloadAsync(Uri uri, string filePath, IProgress<Tuple<long, long>> progress)
+        {
+            var totalBytesCopied = 0L;
+            _fileSize = await GetContentLengthAsync(uri.AbsoluteUri) ?? 0;
+            if (_fileSize == 0)
+            {
+                throw new Exception("File has no any content !");
+            }
+            using (Stream output = File.OpenWrite(filePath))
+            {
+                var segmentCount = (int)Math.Ceiling(1.0 * _fileSize / chunkSize);
+                for (var i = 0; i < segmentCount; i++)
+                {
+                    var from = i * chunkSize;
+                    var to = (i + 1) * chunkSize - 1;
+                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                    request.Headers.Range = new RangeHeaderValue(from, to);
+                    using (request)
+                    {
+                        // Download Stream
+                        var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                        if (response.IsSuccessStatusCode)
+                            response.EnsureSuccessStatusCode();
+                        var stream = await response.Content.ReadAsStreamAsync();
+                        //File Steam
+                        var buffer = new byte[81920];
+                        int bytesCopied;
+                        do
+                        {
+                            bytesCopied = await stream.ReadAsync(buffer, 0, buffer.Length);
+                            output.Write(buffer, 0, bytesCopied);
+                            totalBytesCopied += bytesCopied;
+                            progress.Report(new Tuple<long, long>(totalBytesCopied, _fileSize));
+                        } while (bytesCopied > 0);
+                    }
+                }
+            }
+        }
+        private async Task<long?> GetContentLengthAsync(string requestUri, bool ensureSuccess = true)
+        {
+            using (var request = new HttpRequestMessage(HttpMethod.Head, requestUri))
+            {
+                var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                if (ensureSuccess)
+                    response.EnsureSuccessStatusCode();
+                return response.Content.Headers.ContentLength;
+            }
         }
     }
 }

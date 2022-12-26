@@ -33,16 +33,17 @@
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.button2 = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
-            this.button3 = new System.Windows.Forms.Button();
             this.progressBar2 = new System.Windows.Forms.ProgressBar();
-            this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.comboBox_SRT = new System.Windows.Forms.ComboBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.comboBox_Video = new System.Windows.Forms.ComboBox();
+            this.label6 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // button1
@@ -66,7 +67,7 @@
             // 
             this.textBox1.Location = new System.Drawing.Point(22, 117);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(456, 20);
+            this.textBox1.Size = new System.Drawing.Size(432, 20);
             this.textBox1.TabIndex = 2;
             // 
             // label1
@@ -77,16 +78,6 @@
             this.label1.Size = new System.Drawing.Size(225, 13);
             this.label1.TabIndex = 3;
             this.label1.Text = "動画のURL(soundcloudも対応しています)";
-            // 
-            // checkBox1
-            // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(22, 155);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(147, 17);
-            this.checkBox1.TabIndex = 4;
-            this.checkBox1.Text = "音声形式でダウンロード";
-            this.checkBox1.UseVisualStyleBackColor = true;
             // 
             // openFileDialog1
             // 
@@ -101,7 +92,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(400, 42);
+            this.button2.Location = new System.Drawing.Point(413, 42);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(95, 43);
             this.button2.TabIndex = 6;
@@ -118,29 +109,6 @@
             this.label2.TabIndex = 7;
             this.label2.Text = "フォルダのパス";
             // 
-            // comboBox1
-            // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Items.AddRange(new object[] {
-            "mp3",
-            "ogg",
-            "wav"});
-            this.comboBox1.Location = new System.Drawing.Point(181, 153);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(106, 21);
-            this.comboBox1.TabIndex = 8;
-            this.comboBox1.Text = "mp3";
-            // 
-            // button3
-            // 
-            this.button3.Location = new System.Drawing.Point(553, 173);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(66, 52);
-            this.button3.TabIndex = 9;
-            this.button3.Text = "てすと";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
-            // 
             // progressBar2
             // 
             this.progressBar2.Location = new System.Drawing.Point(22, 219);
@@ -148,39 +116,91 @@
             this.progressBar2.Size = new System.Drawing.Size(486, 20);
             this.progressBar2.TabIndex = 10;
             // 
-            // checkBox2
-            // 
-            this.checkBox2.AutoSize = true;
-            this.checkBox2.Location = new System.Drawing.Point(484, 120);
-            this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(78, 17);
-            this.checkBox2.TabIndex = 11;
-            this.checkBox2.Text = "最高画質";
-            this.checkBox2.UseVisualStyleBackColor = true;
-            // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(304, 155);
+            this.label3.Location = new System.Drawing.Point(22, 151);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(32, 13);
             this.label3.TabIndex = 12;
             this.label3.Text = "0 /0";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.BackColor = System.Drawing.SystemColors.Control;
+            this.label4.ForeColor = System.Drawing.SystemColors.Highlight;
+            this.label4.Location = new System.Drawing.Point(19, 9);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(0, 13);
+            this.label4.TabIndex = 14;
+            this.label4.Click += new System.EventHandler(this.label4_Click);
+            // 
+            // comboBox_SRT
+            // 
+            this.comboBox_SRT.DisplayMember = "a";
+            this.comboBox_SRT.FormattingEnabled = true;
+            this.comboBox_SRT.Items.AddRange(new object[] {
+            "なし",
+            "en",
+            "ja"});
+            this.comboBox_SRT.Location = new System.Drawing.Point(553, 143);
+            this.comboBox_SRT.Name = "comboBox_SRT";
+            this.comboBox_SRT.Size = new System.Drawing.Size(106, 21);
+            this.comboBox_SRT.TabIndex = 15;
+            this.comboBox_SRT.Text = "なし";
+            this.comboBox_SRT.ValueMember = "a";
+            this.comboBox_SRT.SelectedIndexChanged += new System.EventHandler(this.comboBox2_SelectedIndexChanged);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(562, 104);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(70, 13);
+            this.label5.TabIndex = 16;
+            this.label5.Text = "字幕ファイル";
+            // 
+            // comboBox_Video
+            // 
+            this.comboBox_Video.DisplayMember = "a";
+            this.comboBox_Video.FormattingEnabled = true;
+            this.comboBox_Video.Items.AddRange(new object[] {
+            "普通",
+            "最低画質",
+            "最高画質",
+            "音声のみ"});
+            this.comboBox_Video.Location = new System.Drawing.Point(462, 143);
+            this.comboBox_Video.Name = "comboBox_Video";
+            this.comboBox_Video.Size = new System.Drawing.Size(85, 21);
+            this.comboBox_Video.TabIndex = 17;
+            this.comboBox_Video.Text = "普通";
+            this.comboBox_Video.ValueMember = "a";
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(459, 104);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(70, 13);
+            this.label6.TabIndex = 18;
+            this.label6.Text = "動画の種類";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(669, 263);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.comboBox_Video);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.comboBox_SRT);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.checkBox2);
             this.Controls.Add(this.progressBar2);
-            this.Controls.Add(this.button3);
-            this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.progressBar1);
@@ -200,16 +220,17 @@
         private System.Windows.Forms.ProgressBar progressBar1;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.CheckBox checkBox1;
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.ComboBox comboBox1;
-        private System.Windows.Forms.Button button3;
         private System.Windows.Forms.ProgressBar progressBar2;
-        private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox comboBox_SRT;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.ComboBox comboBox_Video;
+        private System.Windows.Forms.Label label6;
     }
 }
 

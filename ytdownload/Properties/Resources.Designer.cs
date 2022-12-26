@@ -59,15 +59,5 @@ namespace ytdownload.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   型 System.Byte[] のローカライズされたリソースを検索します。
-        /// </summary>
-        internal static byte[] EcoDecoTooL114 {
-            get {
-                object obj = ResourceManager.GetObject("EcoDecoTooL114", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
     }
 }

@@ -1,19 +1,19 @@
-﻿using System;
-using System.Windows.Forms;
-using VideoLibrary;
-using System.IO;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using System.Net.Http;
-using System.IO.Compression;
-using NicoNico.Net.Managers;
-using System.Net;
-using NicoNico.Net.Entities.User;
+﻿using SoundCloudExplode;
+using SoundCloudExplode.Tracks;
+using System;
 using System.Collections.Generic;
-using System.Text;
-using SoundCloudExplode;
-using System.Net.Http.Headers;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
+using YoutubeExplode;
+using YoutubeExplode.Converter;
+using YoutubeExplode.Videos.Streams;
 
 namespace ytdownload
 {
@@ -21,26 +21,25 @@ namespace ytdownload
     {
         private string filepath;
         public List<string> settings;
-       NicoNico.Net.Managers.AuthenticationManager authManager;
-        CookieContainer cookieContainer;
-        UserSession session;
-        //0 defaultpath
-        //1 defaultmusicbool
-        //2 defaultmusictype
-        //3 defaulturl
-        //4 niconicoemail
-        //5 niconicopass
+        private YoutubeClient youtube = new YoutubeClient();
+        private SoundCloudClient soundcloud = new SoundCloudClient();
 
-
-        public  Form1()
+        private enum VideoConfig
+        {
+            普通,
+            最低画質,
+            最高画質,
+            音声のみ
+        }
+        public Form1()
 
         {
             InitializeComponent();
-            settings= new List<string>(100);
+            settings = new List<string>(100);
             readsetting();
             textBox2.Text = settings[0];
-            checkBox1.Checked = bool.Parse(settings[1]);
-            comboBox1.Text = settings[2];
+            comboBox_Video.Text = settings[1];
+            comboBox_SRT.Text = settings[2];
             textBox1.Text = settings[3];
             ecodecotool();
         }
@@ -61,8 +60,8 @@ namespace ytdownload
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
             settings[0] = textBox2.Text;
-            settings[1] = checkBox1.Checked.ToString();
-            settings[2] = comboBox1.Text;
+            settings[1] = comboBox_Video.Text;
+            settings[2] = comboBox_SRT.Text;
             settings[3] = textBox1.Text;
             setsetting();
             Application.Exit();
@@ -73,11 +72,11 @@ namespace ytdownload
             try
             {
                 if (!Directory.Exists(textBox2.Text)) { MessageBox.Show("パスが不正です。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-                if(textBox1.Text.IndexOf("youtu.be")!=-1|| textBox1.Text.IndexOf("youtube.com") != -1)
+                if (textBox1.Text.IndexOf("youtu.be") != -1 || textBox1.Text.IndexOf("youtube.com") != -1)
                 {
-                    if(textBox1.Text.IndexOf("playlist") != -1)
+                    if (textBox1.Text.IndexOf("playlist") != -1)
                     {
-                         MessageBox.Show("playlistはまた今度対応します...");
+                        MessageBox.Show("playlistはまた今度対応します...");
                         return;
                     }
                     else
@@ -90,53 +89,14 @@ namespace ytdownload
                     //await postniconicourl(textBox1.Text,textBox2.Text);
                     DownloadSoundCloud(textBox2.Text, textBox1.Text);
                 }
-                
-                
-                
+
+
+
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
                 return;
-            }
-
-            if (checkBox1.Checked)
-            {
-                try
-                {
-                    string kakutyousi = comboBox1.Text;
-                    string num = "";
-                    if (kakutyousi == "mp3")
-                    {
-                        num = "1";
-                    }
-                    else if (kakutyousi == "wav")
-                    {
-                        num = "2";
-                    }
-                    else if (kakutyousi == "ogg")
-                    {
-                        num = "3";
-                    }
-                    else
-                    {
-                        MessageBox.Show("音声形式が不正です。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    File.Delete(Application.LocalUserAppDataPath + @"\EcoDecoTooL114\EcoDecoTooL.ini");
-                    File.Copy(Application.LocalUserAppDataPath + @"\EcoDecoTooL114\temp" + num + ".ini", Application.LocalUserAppDataPath + @"\EcoDecoTooL114\EcoDecoTooL.ini");
-                    ProcessStartInfo info = new ProcessStartInfo();
-                    info.FileName = Application.LocalUserAppDataPath + @"\EcoDecoTooL114\EcoDecoTooL.exe";
-                    info.Arguments = "\"" + filepath + "\"";
-                    info.WindowStyle = ProcessWindowStyle.Hidden;
-                    Process p = Process.Start(info);
-                    p.WaitForExit();
-                    File.Delete(filepath);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
-                }
             }
         }
 
@@ -144,116 +104,128 @@ namespace ytdownload
         Task
 savevideo(string link, string path)
         {
-            /*
-            var youtube = YouTube.Default;
-            
-            var video = youtube.GetVideo(link);
-            
-            var client = new HttpClient();
-            long? totalByte = 0;
+            var manifest = await youtube.Videos.Streams.GetManifestAsync(link);
+            var videoinfo = await youtube.Videos.GetAsync(link);
 
-            string fileresultpath = path + @"\" + delinvalidchar(video.Title);
-            filepath = fileresultpath;
-            Console.WriteLine(fileresultpath);
-            using (Stream output = File.OpenWrite(fileresultpath))
+
+            IStreamInfo video;
+            var c = GetVideoConfig();
+            string title;
+
+            Action<string> callback = null;
+            if (c == VideoConfig.音声のみ)
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Head, video.Uri))
+                video = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                callback = (x) =>
                 {
-                    totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).Result.Content.Headers.ContentLength;
-                }
-                using (var input = await client.GetStreamAsync(video.Uri))
-                {
-                    byte[] buffer = new byte[16 * 1024];
-                    int read;
-                    int totalRead = 0;
-                    while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        output.Write(buffer, 0, read);
-                        totalRead += read;
-                        progressBar1.Value = (int)((totalRead / (double)totalByte) * 100);
-                    }
-                }
-            }*/
-            var youtube = new CustomYouTube();
-            if (checkBox2.Checked)
-            {
-                Console.WriteLine("最高画質");
-                var videos = await youtube.GetAllVideosAsync(link);
-                var maxResolution = videos.First(i => i.Resolution == videos.Max(j => j.Resolution));
-                await youtube
-                    .CreateDownloadAsync(
-                    new Uri(maxResolution.Uri),
-                    Path.Combine(path, maxResolution.FullName),
-                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
-                    {
-                        var percent = (int)((v.Item1 * 100) / v.Item2);
-                        progressBar1.Value = percent;
-                        label3.Text = string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N"));
-                    }));
+                    var temp = Path.Combine(Path.GetTempPath(), $"Template{new Random().Next()}{new Random().Next()}{new Random().Next()}.mp4");
+                    var tempo = Path.ChangeExtension(temp, ".mp3");
+                    File.Copy(x, temp);
+                    FFmpegRun(temp,tempo);
+                    File.Copy(tempo, Path.ChangeExtension(x, ".mp3"));
+                    File.Delete(temp);
+                    File.Delete(tempo);
+                    File.Delete(x);
+                };
             }
             else
             {
-                var video=await youtube.GetVideoAsync(link);
-                await youtube
-                    .CreateDownloadAsync(
-                    new Uri(video.Uri),
-                    Path.Combine(path, video.FullName),
-                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
-                    {
-                        var percent = (int)((v.Item1 * 100) / v.Item2);
-                        progressBar1.Value = percent; 
-                        label3.Text = string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N"));
-                    }));
+                if (c == VideoConfig.最高画質)
+                {
+                    video = manifest.GetMuxedStreams().GetWithHighestVideoQuality();
+                }
+                else if (c == VideoConfig.普通)
+                {
+                    var a = manifest.GetMuxedStreams();
+                    video = a.ElementAt((int)(a.Count() / 2.0f));
+                }
+                else if (c == VideoConfig.最低画質)
+                {
+                    video = manifest.GetMuxedStreams().FirstOrDefault();
+                }
+                else
+                {
+                    throw new Exception("動画の種類の設定が正しくありません。");
+                }
             }
+            title = delinvalidchar(videoinfo.Title, ".mp4");
+            label4.Text = video.Url;
+            var srtpath = Path.Combine(path, title.Substring(0, title.Length - 3) + "srt");
+            Console.WriteLine(srtpath);
+            path = Path.Combine(path, title);
+
+            var dirPath = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(dirPath))
+                Directory.CreateDirectory(dirPath);
+
+
+
+            await youtube.Videos.Streams.DownloadAsync(video, path, new Progress<double>((double x) => {
+                var recieved = x * video.Size.MegaBytes;
+                progressBar1.Value = (int)(x * 100);
+                label3.Text = string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", System.Math.Floor(x * 100), recieved.ToString("N"), video.Size.MegaBytes.ToString("N"));
+            }));
             
-                
+            
+
+            if (GetSRTLang() != "")
+            {
+                var trackManifest = await youtube.Videos.ClosedCaptions.GetManifestAsync(
+    link
+);
+                var t = trackManifest.GetByLanguage(GetSRTLang());
+                await youtube.Videos.ClosedCaptions.DownloadAsync(t, srtpath);
+            }
+            callback?.Invoke(path);
+            label3.Text = "完了!";
         }
 
-         
-
-        string delinvalidchar(string content)
+        void FFmpegRun(string input,string output,string arg = "")
         {
+            var p = new Process();
+            p.StartInfo.FileName = FFmpegPath();
+            p.StartInfo.WorkingDirectory = Path.GetTempPath();
+            p.StartInfo.Arguments = $"-i \"{input}\" {arg} \"{output}\"";
+            p.Start();
+            p.WaitForExit();
+        }
+
+        string delinvalidchar(string content, string kakutyousi)
+        {
+            char[] invalidChars = System.IO.Path.GetInvalidPathChars();
+
+            System.Array.Resize(ref invalidChars, invalidChars.Length + 1);
+            invalidChars[invalidChars.Length - 1] = ':';
+            System.Array.Resize(ref invalidChars, invalidChars.Length + 1);
+            invalidChars[invalidChars.Length - 1] = '　';
+            System.Array.Resize(ref invalidChars, invalidChars.Length + 1);
+            invalidChars[invalidChars.Length - 1] = '/';
+
             while (true)
             {
-                char[] invalidChars = System.IO.Path.GetInvalidPathChars();
-                
-                Array.Resize(ref invalidChars, invalidChars.Length+1);
-                invalidChars[invalidChars.Length - 1] = ':';
-                Array.Resize(ref invalidChars, invalidChars.Length + 1);
-                invalidChars[invalidChars.Length - 1] = '　';
-                Console.WriteLine(invalidChars);
                 int num = content.IndexOfAny(invalidChars);
-                Console.WriteLine(num);
                 if (num == -1) { break; }
                 else
                 {
-                    Console.WriteLine(content);
                     content = content.Remove(num, 1);
-                    Console.WriteLine(content);
                 }
             }
-            if (content.Substring(content.Length - 4) != ".mp4") { content += ".mp4"; }
+            if (content.Substring(content.Length - kakutyousi.Length) != kakutyousi) { content += kakutyousi; }
             return content;
         }
 
         void ecodecotool()
         {
-            bool isfirst = bool.Parse(settings[1]);
-            Console.WriteLine(isfirst);
+            bool isfirst = true;
+            bool.TryParse(settings[1], out isfirst);
             if (isfirst)
             {
-                try
-                {
-                    byte[] ecodecotoolzip = Properties.Resources.EcoDecoTooL114;
-                    ZipArchive zipArchive = new ZipArchive(new MemoryStream(ecodecotoolzip));
-                    zipArchive.ExtractToDirectory(Application.LocalUserAppDataPath );
-                    settings[1] = "false";
-                    setsetting();
-                }
-                catch(Exception e)
-                {
-                    Console.Write("zip\n"+e.ToString());
-                }
+                settings[1] = "false";
+                setsetting();
+            }
+            if (!File.Exists(FFmpegPath()))
+            {
+                ExtractFFmpeg();
             }
         }
 
@@ -275,171 +247,111 @@ savevideo(string link, string path)
             string path = Application.LocalUserAppDataPath + @"\data.txt";
             if (File.Exists(path))
             {
-                StreamReader streamreader=new StreamReader(path);
-               var s= streamreader.ReadToEnd().Split(',');
+                StreamReader streamreader = new StreamReader(path);
+                var s = streamreader.ReadToEnd().Split(',');
                 settings.AddRange(s);
                 streamreader.Close();
             }
             else
             {
                 settings.Add("");
-                settings.Add("true");
-                settings.Add("mp3");
+                settings.Add("普通");
+                settings.Add("なし");
                 settings.Add("");
-                //path= Path.GetFullPath(path)
-                var f =System.IO.File.Create("data.txt");
-            
-                f.Close();
-                setsetting();   
+                File.Create("data.txt").Close();
+                setsetting();
             }
         }
-
-       async Task postniconicourl(string url,string path)
-        {
-            try
-            {
-                string jsonString = "{\"url\":\"" + url + "\"}";
-
-                var client = new HttpClient();
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://nico.forestfamily4.repl.co");
-                request.Content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-                var response = await client.SendAsync(request);
-               string result= await response.Content.ReadAsStringAsync();
-                Console.WriteLine(result);
-                var d = new DateTimeOffset();
-                filepath = path + @"\niconico" +d.Hour +d.Minute+d.Second +".mp4";
-                await downloadniconico(result);
-                return;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-                return; 
-            }
-            
-
-/*
-            var content = new StringContent(jsonString, Encoding.UTF8, @"application/json");
-            //POST
-            var result = await client.PostAsync(@"https://nico.forestfamily4.repl.co", content);
-            Console.WriteLine(result);*/
-        }
-
-        async Task downloadniconico(string url)
-        {
-            filepath = delinvalidchar(filepath);
-            string temp = "https://pf021372593.dmc.nico/vod/ht2_nicovideo/nicovideo-sm9664372_f99f651322b7a33066174c6777289c9612db5cd84f361923e82d238cf8f433dd?ht2_nicovideo=6-xOoSBVy9WP_1650435433594.gkm7qqhyvu_ramk4q_3gmj6464pkn7t.mp4";
-            var client = new HttpClient();
-            var response = await client.GetAsync(url);
-           // var response = await client.GetAsync(temp);
-            using (var stream = await response.Content.ReadAsStreamAsync())
-            {
-                Console.WriteLine(filepath);
-                File.Create(filepath).Close();
-                var fileInfo = new FileInfo(filepath);
-                using (var fileStream = fileInfo.OpenWrite())
-                {
-                    
-                    await stream.CopyToAsync(fileStream);
-                    long length=0;
-                    while (true)
-                    {
-                        Console.WriteLine(length);
-                        if (length==new FileInfo(filepath).Length)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            length = fileStream.Length;
-                            Console.WriteLine(length);
-                        }
-                    }
-                }
-            }
-        }
-
-        private async void button3_Click(object sender, EventArgs e)
-        {
-            filepath = textBox2.Text + @"\ニコニコ動画" + DateTime.Now.ToString();
-            await downloadniconico(textBox1.Text);
-        }
-
 
         private Progress<double> _Progress_Soundcloud;
-        
-        async void DownloadSoundCloud(string path,string link)
-        {
-            var soundcloud = new SoundCloudClient();
 
-            var track=await soundcloud.Tracks.GetAsync(link);
-            var trackName = string.Join("_", track.Title.Split(Path.GetInvalidFileNameChars()));
-            string fileresultpath = path + "\\" + trackName + ".mp3";
-            Debug.WriteLine("soundcloud");
-            _Progress_Soundcloud = new Progress<double>(x =>
-            {
-                progressBar2.Value = (int)(x*100);
-            });
-            soundcloud.DownloadAsync(track, fileresultpath,_Progress_Soundcloud);
-        }
-    }
+        async void DownloadSoundCloud(string path, string link)
+        {
 
-    class CustomYouTube : YouTube
-    {
-        private long chunkSize = 10_485_760;
-        private long _fileSize = 0L;
-        private HttpClient _client = new HttpClient();
-        protected override HttpClient MakeClient(HttpMessageHandler handler)
-        {
-            return base.MakeClient(handler);
-        }
-        public async Task CreateDownloadAsync(Uri uri, string filePath, IProgress<Tuple<long, long>> progress)
-        {
-            var totalBytesCopied = 0L;
-            _fileSize = await GetContentLengthAsync(uri.AbsoluteUri) ?? 0;
-            if (_fileSize == 0)
+            try
             {
-                throw new Exception("File has no any content !");
-            }
-            using (Stream output = File.OpenWrite(filePath))
-            {
-                var segmentCount = (int)Math.Ceiling(1.0 * _fileSize / chunkSize);
-                for (var i = 0; i < segmentCount; i++)
+                TrackClient t = new TrackClient(soundcloud,new System.Net.Http.HttpClient());
+                if (!t.IsUrlValid(link)) { label3.Text = "不明なsoundcloudトラック"; return; }
+                var track = await t.GetAsync(link);
+                var trackName = string.Join("_", track.Title.Split(Path.GetInvalidFileNameChars()));
+                string fileresultpath = path + "\\" + trackName + ".mp3";
+                label4.Text =await t.GetDownloadUrlAsync(track);
+                _Progress_Soundcloud = new Progress<double>(x =>
                 {
-                    var from = i * chunkSize;
-                    var to = (i + 1) * chunkSize - 1;
-                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                    request.Headers.Range = new RangeHeaderValue(from, to);
-                    using (request)
-                    {
-                        // Download Stream
-                        var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-                        if (response.IsSuccessStatusCode)
-                            response.EnsureSuccessStatusCode();
-                        var stream = await response.Content.ReadAsStreamAsync();
-                        //File Steam
-                        var buffer = new byte[81920];
-                        int bytesCopied;
-                        do
-                        {
-                            bytesCopied = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            output.Write(buffer, 0, bytesCopied);
-                            totalBytesCopied += bytesCopied;
-                            progress.Report(new Tuple<long, long>(totalBytesCopied, _fileSize));
-                        } while (bytesCopied > 0);
-                    }
-                }
+                    progressBar2.Value = (int)(x * 100);
+                    label3.Text = $"Downloading... {x * 100}%";
+                });
+                await soundcloud.DownloadAsync(track, fileresultpath, _Progress_Soundcloud);
+                label3.Text = "完了！";
+            }
+            catch(Exception e)
+            {
+                
             }
         }
-        private async Task<long?> GetContentLengthAsync(string requestUri, bool ensureSuccess = true)
+
+
+        private void label4_Click(object sender, EventArgs e)
         {
-            using (var request = new HttpRequestMessage(HttpMethod.Head, requestUri))
+            Process.Start(label4.Text);
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        string GetSRTLang()
+        {
+            var t = comboBox_SRT.Text;
+            if (t == "なし") { return ""; }
+            else if (t == "en" || t == "ja") { return t; }
+            else
             {
-                var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-                if (ensureSuccess)
-                    response.EnsureSuccessStatusCode();
-                return response.Content.Headers.ContentLength;
+                return "";
             }
+        }
+
+        VideoConfig GetVideoConfig()
+        {
+            var t = comboBox_Video.Text;
+            if (comboBox_Video.Items.Contains(t))
+            {
+                var a = (VideoConfig)Enum.ToObject(typeof(VideoConfig), comboBox_Video.SelectedIndex);
+                return a;
+            }
+            else
+            {
+                return VideoConfig.普通;
+            }
+        }
+        
+        async void ExtractFFmpeg()
+        {
+            Console.WriteLine("thinking");
+            this.Hide();
+            var pw = new ProgressWindow("Downloading..");
+            pw.Show();
+            this.ShowInTaskbar = false;
+            this.Opacity = 0;
+            await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official,new Progress<ProgressInfo>(x => {
+                int a =(int)((float) x.DownloadedBytes / (float)x.TotalBytes*100);
+                pw.label.Text = $"ファイル操作のためにFFmpegをダウンロードしています... {a}% {(float)x.DownloadedBytes/100000}MB / {(int)(float)x.TotalBytes/100000}MB ";
+                pw.progressBar.Value = a;
+            }) );
+            pw.Dispose();
+            var defaultdir = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+            File.Copy(Path.Combine(defaultdir,"ffmpeg.exe"), FFmpegPath());
+            File.Delete(Path.Combine(defaultdir, "ffmpeg.exe"));
+            File.Delete(Path.Combine(defaultdir, "ffprobe.exe"));
+            this.ShowInTaskbar = true;
+            this.Opacity = 100;
+        }
+
+        string FFmpegPath()
+        {
+            return Path.Combine(Application.LocalUserAppDataPath, "ffmpeg.exe");
         }
     }
+    
 }
